@@ -59,3 +59,7 @@ typings/
 
 # next.js build output
 .next
+
+# SimDevices Beatmap Downloader build output
+dist/
+build/

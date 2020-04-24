@@ -101,10 +101,14 @@ if (!gotTheLock) {
   app.on('second-instance', (event, commandLine, workingDirectory) => {
     console.log('second-instance-start')
 
-    // 当运行第二个实例时,将会聚焦到myWindow这个窗口
+    // 当运行第二个实例时
     if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      mainWindow.focus()
+      if (mainWindow.isMinimized()) {
+        // 如果最小化
+        //mainWindow.restore()
+      }
+      // 获得焦点
+      // mainWindow.focus()
     } else {
       if (!platform.isWindows) {
         if (app.isReady()) createWindow()

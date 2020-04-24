@@ -1,45 +1,8 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import * as platform from './Utils/platform'
 import * as path from 'path'
-
-app.on('ready', () => {
-  if (!app.isDefaultProtocolClient('osu')) {
-    app.setAsDefaultProtocolClient('osu')
-  }
-})
-// Mac 唤醒
-app.on('open-url', (event, url) => {
-  event.preventDefault()
-  console.log(decodeURI(url))
-})
-// Windows 单一实例
-const gotTheLock = app.requestSingleInstanceLock()
-if (!gotTheLock) {
-  console.log('gotTheLock')
-  app.quit()
-} else {
-  app.on('second-instance', (event, commandLine, workingDirectory) => {
-    console.log('second-instance-start')
-
-    // 当运行第二个实例时,将会聚焦到myWindow这个窗口
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      mainWindow.focus()
-    } else {
-      if (!platform.isWindows) {
-        if (app.isReady()) createWindow()
-      }
-    }
-    if (platform.isWindows) {
-      console.log('second-instace')
-      let commands = commandLine.slice()
-      // commandLine 是一个数组， 其中最后一个数组元素为我们唤醒的链接
-      const activeUrl = decodeURI(commands.pop())
-      // mainWindow.loadURL();
-      console.log(activeUrl)
-    }
-  })
-}
+import * as files from './Utils/files'
+import { GLOBAL_CONFIG } from './global'
 
 let mainWindow: Electron.BrowserWindow
 
@@ -48,7 +11,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     height: 600,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'frontend.js'),
     },
     width: 800,
   })
@@ -58,6 +21,19 @@ function createWindow() {
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools()
+
+  ipcMain.on('download-file', (event, ...args) => {
+    const { url, name }: { url: string; name: string } = args[0]
+    const filePath = path.join(app.getPath('temp'), name)
+    files
+      .fetchFile(url)
+      .then((data) => {
+        return files.writeFile(filePath, data)
+      })
+      .then(() => {
+        return shell.openExternal(filePath)
+      })
+  })
 
   // Emitted when the window is closed.
   mainWindow.on('closed', () => {
@@ -98,3 +74,71 @@ app.on('activate', () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
+
+app.on('ready', () => {
+  if (!app.isDefaultProtocolClient('osu')) {
+    app.setAsDefaultProtocolClient('osu')
+  }
+})
+// Mac 唤醒
+app.on('open-url', (event, url) => {
+  event.preventDefault()
+  if (mainWindow) {
+    mainWindow.webContents.send('external-link', decodeURI(url))
+  } else {
+    ipcMain.once('main-window-ready', (event, ...args) => {
+      mainWindow.webContents.send('external-link', decodeURI(url))
+    })
+  }
+})
+
+// Windows 单一实例
+const gotTheLock = app.requestSingleInstanceLock()
+if (!gotTheLock) {
+  console.log('gotTheLock')
+  app.quit()
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    console.log('second-instance-start')
+
+    // 当运行第二个实例时,将会聚焦到myWindow这个窗口
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+    } else {
+      if (!platform.isWindows) {
+        if (app.isReady()) createWindow()
+      }
+    }
+
+    if (platform.isWindows) {
+      console.log('second-instace')
+      // commandLine 是一个数组， 其中最后一个数组元素为我们唤醒的链接
+      const commands = commandLine.slice()
+      if (mainWindow) {
+        mainWindow.webContents.send('external-link', decodeURI(commands.pop()))
+      } else {
+        ipcMain.once('main-window-ready', (event, ...args) => {
+          mainWindow.webContents.send('external-link', decodeURI(commands.pop()))
+        })
+      }
+    }
+  })
+}
+
+// 第一个启动的实例
+if (mainWindow) {
+  const commands = process.argv.slice()
+  const lastArg = commands.pop()
+  if (lastArg.startsWith(GLOBAL_CONFIG.Protocol)) {
+    mainWindow.webContents.send('external-link', decodeURI(lastArg))
+  }
+} else {
+  const commands = process.argv.slice()
+  const lastArg = commands.pop()
+  ipcMain.once('main-window-ready', (event, ...args) => {
+    if (lastArg.startsWith(GLOBAL_CONFIG.Protocol)) {
+      mainWindow.webContents.send('external-link', decodeURI(lastArg))
+    }
+  })
+}

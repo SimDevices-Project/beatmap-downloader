@@ -1,6 +1,6 @@
 {
   "name": "simdevices-beatmap-downloader",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A beatmap downloader for osu!",
   "main": "./dist/main.js",
   "files": [
@@ -43,6 +43,9 @@
     "url": "https://github.com/iamapig120/simdevices-beatmap-downloader/issues"
   },
   "homepage": "https://github.com/iamapig120/simdevices-beatmap-downloader#readme",
+  "dependencies": {
+    "electron-fetch": "^1.4.0"
+  },
   "devDependencies": {
     "@types/node": "^12.12.37",
     "electron": "^8.2.3",

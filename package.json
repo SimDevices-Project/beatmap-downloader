@@ -1,6 +1,6 @@
 {
   "name": "simdevices-beatmap-downloader",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A beatmap downloader for osu!",
   "main": "./dist/main.js",
   "files": [

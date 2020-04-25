@@ -1,12 +1,14 @@
 import { app, ipcRenderer } from 'electron'
 import { GLOBAL_CONFIG } from './global'
+import { matchProtocols } from './Utils/url'
 
 window.addEventListener('DOMContentLoaded', () => {
   ipcRenderer.on('external-link', (event, ...args) => {
     const externalLink: string = <string>args[0]
     console.log(externalLink)
-    if (externalLink.startsWith(GLOBAL_CONFIG.Protocol)) {
-      const [type, id] = externalLink.substr(6).split('/')
+    const matchStats = matchProtocols(externalLink)
+    if (matchStats.matched) {
+      const [type, id] = externalLink.substr(matchStats.protocol.length + 3).split('/')
       let requestURL: string
       let apiVersion = 2
       switch (apiVersion) {

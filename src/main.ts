@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import * as platform from './Utils/platform'
 import * as path from 'path'
 import * as files from './Utils/files'
-import { GLOBAL_CONFIG } from './global'
+import * as urltool from './Utils/url'
 
 let mainWindow: Electron.BrowserWindow
 
@@ -79,7 +79,11 @@ app.on('ready', () => {
   if (!app.isDefaultProtocolClient('osu')) {
     app.setAsDefaultProtocolClient('osu')
   }
+  if (!app.isDefaultProtocolClient('beatmap-downloader')) {
+    app.setAsDefaultProtocolClient('beatmap-downloader')
+  }
 })
+
 // Mac 唤醒
 app.on('open-url', (event, url) => {
   event.preventDefault()
@@ -134,14 +138,14 @@ if (!gotTheLock) {
 if (mainWindow) {
   const commands = process.argv.slice()
   const lastArg = commands.pop()
-  if (lastArg.startsWith(GLOBAL_CONFIG.Protocol)) {
+  if (urltool.matchProtocols(lastArg).matched) {
     mainWindow.webContents.send('external-link', decodeURI(lastArg))
   }
 } else {
   const commands = process.argv.slice()
   const lastArg = commands.pop()
   ipcMain.once('main-window-ready', (event, ...args) => {
-    if (lastArg.startsWith(GLOBAL_CONFIG.Protocol)) {
+    if (urltool.matchProtocols(lastArg).matched) {
       mainWindow.webContents.send('external-link', decodeURI(lastArg))
     }
   })
